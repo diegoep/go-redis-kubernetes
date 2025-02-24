@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"log"
@@ -29,6 +30,7 @@ func quoteOfTheDayHandler(client *redis.Client) http.HandlerFunc {
 			log.Println("Cache miss for date ", date)
 			quoteResp, err := getQuoteFromAPI()
 			if err != nil {
+				log.Println(err)
 				w.Write([]byte("Sorry! We could not get the Quote of the Day. Please try again."))
 				return
 			}
@@ -104,7 +106,11 @@ func waitForShutdown(srv *http.Server) {
 
 func getQuoteFromAPI() (*Quote, error) {
 	API_URL := "https://api.quotable.io/random"
-	resp, err := http.Get(API_URL)
+	customTransport := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	httpClient := &http.Client{Transport: customTransport}
+	resp, err := httpClient.Get(API_URL)
 	if err != nil {
 		return nil, err
 	}
